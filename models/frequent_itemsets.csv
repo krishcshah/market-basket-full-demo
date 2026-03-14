@@ -1,0 +1,12 @@
+support,itemsets
+0.8,Bread
+0.6,Butter
+0.4,Cheese
+0.8,Milk
+0.6,"Butter,Bread"
+0.2,"Cheese,Bread"
+0.6,"Milk,Bread"
+0.4,"Butter,Milk"
+0.4,"Cheese,Milk"
+0.4,"Butter,Milk,Bread"
+0.2,"Milk,Cheese,Bread"
