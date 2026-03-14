@@ -12,7 +12,14 @@ export default function Home() {
   useEffect(() => {
     fetch(`${API_URL}/rules?limit=10`)
       .then(res => res.json())
-      .then(data => setRules(data))
+      .then(data => {
+        if (Array.isArray(data)) {
+          setRules(data);
+        } else {
+          console.error("Failed to load rules:", data);
+          setRules([]);
+        }
+      })
       .catch(console.error);
   }, []);
 

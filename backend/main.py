@@ -15,7 +15,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-MODELS_DIR = "../models"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODELS_DIR = os.path.join(BASE_DIR, "models")
 RULES_FILE = os.path.join(MODELS_DIR, "association_rules.csv")
 
 rules_df = None
@@ -61,7 +62,7 @@ def recommend_products(req: RecommendRequest):
     if rules_df is None:
         return {"error": "Rules not loaded"}
     
-    user_items = set(req.items)
+    user_items = {item.strip().title() for item in req.items}
     recommendations = []
     
     for _, row in rules_df.iterrows():
