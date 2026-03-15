@@ -62,7 +62,8 @@ def recommend_products(req: RecommendRequest):
     if rules_df is None:
         return {"error": "Rules not loaded"}
     
-    user_items = {item.strip().title() for item in req.items}
+    # Store everything uppercase to match training dataset standardization
+    user_items = {item.strip().upper() for item in req.items}
     recommendations = []
     
     for _, row in rules_df.iterrows():

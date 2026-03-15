@@ -1,6 +1,6 @@
 import pandas as pd
 import os
-from mlxtend.frequent_patterns import apriori, association_rules
+from mlxtend.frequent_patterns import fpgrowth, association_rules
 import kagglehub
 
 DATA_PATH = "data/dataset.csv"
@@ -24,36 +24,33 @@ def main():
     if not os.path.exists(DATA_PATH):
         get_kaggle_data()
 
-    df = pd.read_csv(DATA_PATH)
+    df = pd.read_csv(DATA_PATH, low_memory=False)
     
+    print("Cleaning the full dataset...")
     # Clean the dataset
-    df.dropna(subset=[df.columns[1]], inplace=True) # Drop missing Itemnames
-    df[df.columns[1]] = df[df.columns[1]].astype(str).str.strip() # Strip whitespaces
+    df.dropna(subset=[df.columns[0], df.columns[1]], inplace=True) # Drop missing Invoice/Itemnames
+    df[df.columns[1]] = df[df.columns[1]].astype(str).str.strip().str.upper() # Strip and uppercase items for consistency
     
-    # Due to dataset size, let's filter for a specific subset to avoid MemoryError (e.g., Country='France')
-    if 'Country' in df.columns:
-        df = df[df['Country'] == 'France']
-    else:
-        # If no Country column, just sample to top 2000 transactions to save memory
-        top_txns = df[df.columns[0]].drop_duplicates().head(2000)
-        df = df[df[df.columns[0]].isin(top_txns)]
-
+    # Filter out canceled transactions (which often start with 'C') and postage
+    df = df[~df[df.columns[0]].astype(str).str.startswith('C')]
+    df = df[df[df.columns[1]] != 'POSTAGE']
+    
     transaction_col = df.columns[0]
     item_col = df.columns[1]
 
-    print("Creating basket matrix...")
-    # Create basket matrix
+    print("Creating sparse basket matrix for the ENTIRE dataset...")
+    # Group by transaction and item, unstacking to a matrix. 
+    # Use boolean to save huge amounts of memory.
     basket = (df.groupby([transaction_col, item_col])[item_col]
-              .count().unstack().reset_index().fillna(0)
-              .set_index(transaction_col))
+              .count().unstack().fillna(0))
     
-    # Convert quantities to 1/0
-    basket_sets = basket.map(lambda x: 1 if x > 0 else 0)
+    # Convert to strict boolean to save memory and optimize FP-Growth
+    basket_sets = basket.astype(bool)
     
     print(f"Matrix shape: {basket_sets.shape}")
-    print("Generating frequent itemsets...")
-    # Lower support for the real dataset
-    frequent_itemsets = apriori(basket_sets, min_support=0.05, use_colnames=True)
+    print("Generating frequent itemsets using FP-Growth (Ultra Fast)...")
+    # FP-growth is highly scalable so we can use lower support on the entire dataset
+    frequent_itemsets = fpgrowth(basket_sets, min_support=0.015, use_colnames=True)
     
     print("Generating association rules...")
     rules = association_rules(frequent_itemsets, metric="lift", min_threshold=1.0)
