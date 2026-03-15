@@ -10,8 +10,15 @@ export default function Home() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showToast, setShowToast] = useState(true);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+  useEffect(() => {
+    // Auto-hide toast after 8 seconds
+    const timer = setTimeout(() => setShowToast(false), 8000);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     // Fetch rules
@@ -171,6 +178,20 @@ export default function Home() {
 
         </div>
       </div>
+
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed bottom-4 right-4 max-w-sm bg-blue-600 text-white px-4 py-3 rounded-lg shadow-xl z-50 flex items-start space-x-3 transition-opacity duration-300">
+          <div className="flex-1 text-sm font-medium">
+            Note: After long periods of inactivity on this project demo, the backend ML model running on the server can take up to 50 seconds to fire up and send data again.
+          </div>
+          <button onClick={() => setShowToast(false)} className="text-blue-200 hover:text-white mt-0.5">
+             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+             </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
