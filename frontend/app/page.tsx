@@ -8,16 +8,32 @@ export default function Home() {
   const [topProducts, setTopProducts] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
 
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
   useEffect(() => {
     // Fetch rules
     fetch(`${API_URL}/rules?limit=15`)
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) setRules(data);
+      .then(res => {
+        if (!res.ok) throw new Error("Backend not reachable or returned error");
+        return res.json();
       })
-      .catch(console.error);
+      .then(data => {
+        if (Array.isArray(data)) {
+          setRules(data);
+          setLoading(false);
+        } else if (data.error) {
+          setError(data.error);
+          setLoading(false);
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        setError("Could not connect to backend server on port 8000");
+        setLoading(false);
+      });
 
     // Fetch top products for datalist suggestions
     fetch(`${API_URL}/top-products`)
@@ -139,8 +155,14 @@ export default function Home() {
                       </td>
                     </tr>
                   ))}
-                  {rules.length === 0 && (
+                  {loading && (
                     <tr><td colSpan={4} className="p-6 text-center text-gray-500">Loading rules...</td></tr>
+                  )}
+                  {error && !loading && (
+                    <tr><td colSpan={4} className="p-6 text-center text-red-500 font-semibold">{error}</td></tr>
+                  )}
+                  {!loading && !error && rules.length === 0 && (
+                    <tr><td colSpan={4} className="p-6 text-center text-gray-500">No rules found.</td></tr>
                   )}
                 </tbody>
               </table>
